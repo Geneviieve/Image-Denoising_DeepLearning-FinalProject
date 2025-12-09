@@ -1,9 +1,8 @@
 # 📄 Denoising Dirty Documents using U-Net
 
 ![Python](https://img.shields.io/badge/Python-3.10-blue)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-2-orange)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
-![Status](https://img.shields.io/badge/Status-Completed-success)
 
 > **Final Project - Deep Learning**
 > A Deep Learning approach to restore and clean noisy scanned documents for better OCR readability.
