@@ -54,7 +54,6 @@ def process(model, image, patch_size=256):
     return Image.fromarray(final_img)
 
 
-
 #streamlit
 st.set_page_config(
     page_title="Denoising Dirty Documents",
