@@ -96,20 +96,18 @@ if uploaded is not None:
         st.header("Dokumen Asli")
         st.write("Dokumen awal yang memiliki noise.")
         img = Image.open(uploaded) #tampilin gambar
-        st.image(img, caption="Original Document", width=420)
+        st.image(img, caption="Dokumen Asli", width=420)
 
         st.markdown("""
             <style>
                 .stButton>button {
                     background-color: #BCC5E0; 
                     color: white;
-                    width: 100%;
-                    margin-top: 20px;
                 }
             </style>
         """, unsafe_allow_html=True)
         
-        if st.button("✨ Clean & Read Text"):
+        if st.button("Bersihkan"):
             with st.spinner("Sedang membersihkan & membaca teks..."):
                 cleaned = process(model, img) #process denoising
                 st.session_state.clean_img = cleaned
@@ -128,10 +126,19 @@ if uploaded is not None:
         #session state
         if st.session_state.clean_img is not None:
             tab_img, tab_ocr = st.tabs(["🖼️ Dokumen Bersih", "📝 Hasil OCR (Teks)"])
+
+            st.markdown("""
+                <style>
+                    .stDownloadButton>button {
+                        background-color: #88DAED; 
+                        color: white;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
             
             with tab_img:
-                st.write("Denoised document")
-                st.image(st.session_state.clean_img, caption="AI Denoised Result", width=420)
+                st.write("Dokumen yang sudah bersih dari noise.")
+                st.image(st.session_state.clean_img, caption="Hasil Denoised U-Net", width=420)
                 
                 # Tombol Download Gambar
                 from io import BytesIO
@@ -140,21 +147,21 @@ if uploaded is not None:
                 byte_im = buf.getvalue()
                 
                 st.download_button(
-                    label="⬇️ Download Gambar",
+                    label="Download Gambar",
                     data=byte_im,
-                    file_name="cleaned_doc.png",
+                    file_name="cleaned_document.png",
                     mime="image/png"
                 )
 
             with tab_ocr:
-                st.write("Teks yang berhasil dibaca oleh mesin dari gambar bersih:")
+                st.write("Teks yang berhasil dibaca dari gambar bersih:")
                 #biar bs dicpy
-                st.text_area("Extracted Text", st.session_state.ocr_text, height=400)
+                st.text_area("Teks dalam Dokumen", st.session_state.ocr_text, width=420)
                 
                 #download text
                 st.download_button(
-                    label="⬇️ Download Teks (.txt)",
+                    label="Download Teks (.txt)",
                     data=st.session_state.ocr_text,
-                    file_name="extracted_text.txt",
+                    file_name="document_text.txt",
                     mime="text/plain"
                 )
