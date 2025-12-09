@@ -3,6 +3,7 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image, ImageOps
 import math
+import pytesseract  # Tambahan untuk OCR
 
 #load model yang udh dilatih
 @st.cache_resource
@@ -45,14 +46,12 @@ def process(model, image, patch_size=256):
         pred_patch = np.squeeze(pred_patch)
         reconstructed_img[i:i+patch_size, j:j+patch_size] = pred_patch
         
-    
     final_img = reconstructed_img[:h, :w] #crop balik ke ukuran asli
     
     #ganti (0.0 - 1.0) jadi pixel (0 - 255), jadi ga maksa > 0.5 jadi item/putih
     final_img = np.clip(final_img * 255, 0, 255).astype(np.uint8)
     
     return Image.fromarray(final_img)
-
 
 
 
@@ -82,7 +81,13 @@ st.markdown(
 st.divider()
 
 #upload gambrr
-uploaded = st.file_uploader("Upload gambar dokumen yang mau dilakukan denoising", type=["jpg", "jpeg", "png"])
+uploaded = st.file_uploader("Upload gambar dokumen", type=["jpg", "jpeg", "png"])
+
+#session state biar hasil gak ilang pas klik tombol lain
+if 'clean_img' not in st.session_state:
+    st.session_state.clean_img = None
+if 'ocr_text' not in st.session_state:
+    st.session_state.ocr_text = ""
 
 if uploaded is not None:
     col1, col2 = st.columns(2)
@@ -90,52 +95,67 @@ if uploaded is not None:
     #tampilin yang asli, yg bru di upload
     with col1:
         st.header("Dokumen Asli")
-        st.write("Dokumen yang masih memiliki banyak noise dan belum dibersihkan.")
-
-        #tampilin gambar
-        img = Image.open(uploaded)
+        st.write("Dokumen awal yang memiliki noise.")
+        img = Image.open(uploaded) #tampilin gambar
         st.image(img, caption="Original Document", width=420)
-
-        tanda = 0
 
         st.markdown("""
             <style>
                 .stButton>button {
                     background-color: #BCC5E0; 
                     color: white;
+                    width: 100%;
+                    margin-top: 20px;
                 }
             </style>
         """, unsafe_allow_html=True)
-        if st.button("Clean"):
-            with st.spinner("Tunggu..."): #process denoising
-                clean_img = process(model, img)
+        
+        if st.button("✨ Clean & Read Text"):
+            with st.spinner("Sedang membersihkan & membaca teks..."):
+                cleaned = process(model, img) #process denoising
+                st.session_state.clean_img = cleaned
+                
+                #OCR 
+                # config='--psm 6' diasumsikan blok teks seragam, bisa dihapus kl error
+                text_result = pytesseract.image_to_string(cleaned) 
+                st.session_state.ocr_text = text_result
             
-            tanda = 1
             st.success("Selesai!")
 
-    #tampilin yang udah bersih
+    #yg udh bersih
     with col2:
-        st.header("Dokumen Bersih")
-        st.write("Dokumen yang sudah tidak ada noise dan mudah dibaca.")
+        st.header("Hasil Pemrosesan")
         
-        if tanda == 1:
-            st.image(clean_img, caption="Denoised Result", width=420)
-
-            clean_img.save("cleaned.png")
+        #session state
+        if st.session_state.clean_img is not None:
+            tab_img, tab_ocr = st.tabs(["🖼️ Dokumen Bersih", "📝 Hasil OCR (Teks)"])
             
-            #download gambar yg udah bersih
-            with open("cleaned.png", "rb") as file: 
-                st.markdown("""
-                    <style>
-                        .stDownloadButton>button {
-                            background-color: #BBDAED; 
-                            color: white;
-                        }
-                    </style>
-                """, unsafe_allow_html=True)
+            with tab_img:
+                st.write("Denoised document")
+                st.image(st.session_state.clean_img, caption="AI Denoised Result", width=420)
+                
+                # Tombol Download Gambar
+                from io import BytesIO
+                buf = BytesIO()
+                st.session_state.clean_img.save(buf, format="PNG")
+                byte_im = buf.getvalue()
+                
                 st.download_button(
-                    label="Download Dokumen",
-                    data=file,
-                    file_name="cleaned_document.png",
+                    label="⬇️ Download Gambar",
+                    data=byte_im,
+                    file_name="cleaned_doc.png",
                     mime="image/png"
+                )
+
+            with tab_ocr:
+                st.write("Teks yang berhasil dibaca oleh mesin dari gambar bersih:")
+                #biar bs dicpy
+                st.text_area("Extracted Text", st.session_state.ocr_text, height=400)
+                
+                #download text
+                st.download_button(
+                    label="⬇️ Download Teks (.txt)",
+                    data=st.session_state.ocr_text,
+                    file_name="extracted_text.txt",
+                    mime="text/plain"
                 )
