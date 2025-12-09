@@ -121,7 +121,7 @@ if uploaded is not None:
 
     #yg udh bersih
     with col2:
-        st.header("Hasil Pemrosesan")
+        st.header("Hasil")
         
         #session state
         if st.session_state.clean_img is not None:
